@@ -1,0 +1,30 @@
+name: Windows RDP
+on: [push]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+    - name: Setup RDP
+      run: |
+        $url = "https://raw.githubusercontent.com/Disala-Jay/Windows-10-RDP/main/ngrok.exe"
+        Invoke-WebRequest -Uri $url -OutFile "ngrok.exe"
+        ./ngrok.exe authtoken 2yMUgskvaqboqCM8LmEh57aBS9o_65jAAbBuZ7jxBUhmXjqJp
+        Start-Process -FilePath "./ngrok.exe" -ArgumentList "tcp 3389 --region=in" -NoNewWindow
+    - name: Enable RDP
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        net user runneradmin P@ssw0rd! /add
+        net localgroup "Administrators" runneradmin /add
+    - name: Get Ngrok URL
+      run: |
+        Start-Sleep -Seconds 10
+        $ngrokUrl = (Invoke-RestMethod -Uri http://localhost:4040/api/tunnels).tunnels[0].public_url
+        $ngrokUrl = $ngrokUrl -replace "tcp://", ""
+        Write-Output "RDP URL: $ngrokUrl"
+        Write-Output "Username: runneradmin"
+        Write-Output "Password: P@ssw0rd!"
+    - name: Keep Workflow Running
+      run: Start-Sleep -Seconds 21600  # 6 hours
